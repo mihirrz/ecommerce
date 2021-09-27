@@ -1,8 +1,31 @@
 import userModel from "../models/user.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-export const getUser = (_, res) => res.json({ name: "user" });
+// *****************LogIn*****************
+export const getUser = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await userModel.findOne({ email: email });
+    if (!user)
+      return res.status(404).json({ message: "Email does not exists" });
+    const userPassword = await bcrypt.compare(password, user.password);
+    if (!userPassword)
+      return res.status(404).json({ message: "Wrong Password" });
+    const payload = {
+      id: user.id,
+      name: user.name,
+    };
+    jwt.sign(payload, "ecom", { expiresIn: "7d" }, (err, token) => {
+      if (err) return res.status(404).json({ message: err.message });
+      res.status(201).json({ token: token });
+    });
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
 
+// *****************Creating a User or SignUp*****************
 export const createUser = async (req, res) => {
   let { name, email, password } = req.body;
 
@@ -18,7 +41,7 @@ export const createUser = async (req, res) => {
 
   // Checking for password length
   if (password.length < 5)
-    return res.status(404).json({ message: "Password is short" });
+    return res.status(404).json({ message: "Your password is too short" });
 
   // Checking if user already exists
   let user = await userModel.findOne({ email: email });
@@ -35,7 +58,17 @@ export const createUser = async (req, res) => {
     });
     // Saving User to DB
     await user.save();
-    res.status(201).json({ message: "User Created Successfully" });
+
+    // Creating a payload for generating token
+    const payload = {
+      id: user.id,
+      name: user.name,
+    };
+    // Generating token
+    jwt.sign(payload, "ecom", { expiresIn: "7d" }, (err, token) => {
+      if (err) return res.status(404).json({ message: err.message });
+      res.status(201).json({ token: token });
+    });
   } catch (error) {
     res.status(404).json({ message: error.message });
   }

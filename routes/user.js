@@ -3,7 +3,8 @@ import { createUser, getUser } from "../controllers/user.js";
 
 const routes = express.Router();
 
-routes.get('/',getUser)
-routes.post('/',createUser)
+routes.post("/login", getUser);
+routes.post("/signup", createUser);
+
 
 export default routes;
